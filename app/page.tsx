@@ -9,7 +9,7 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) router.push("/login");
+    if (!user) router.push("/landing");
     else if (userData?.role === "admin") router.push("/admin");
     else router.push("/dashboard");
   }, [user, userData, loading, router]);

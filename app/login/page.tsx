@@ -1,29 +1,44 @@
 "use client";
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { userData } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      // Vérifier le statut du compte
+      const userSnap = await getDoc(doc(db, "users", cred.user.uid));
+      if (userSnap.exists() && userSnap.data().status === "pending") {
+        await signOut(auth);
+        toast.error("Votre compte est en attente de validation par l'admin.");
+        setLoading(false);
+        return;
+      }
+      if (userSnap.exists() && userSnap.data().status === "rejected") {
+        await signOut(auth);
+        toast.error("Votre compte a été refusé. Contactez l'admin.");
+        setLoading(false);
+        return;
+      }
+
       toast.success("Bienvenue !");
-      setTimeout(() => {
-        if (userData?.role === "admin") router.push("/admin");
-        else router.push("/dashboard");
-      }, 500);
+      const role = userSnap.data()?.role;
+      if (role === "admin") router.push("/admin");
+      else router.push("/dashboard");
+
     } catch {
       toast.error("Email ou mot de passe incorrect");
     } finally {
@@ -34,7 +49,6 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--forest)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div style={{ width: "100%", maxWidth: "420px" }}>
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
           <div style={{ width: 64, height: 64, background: "var(--gold)", borderRadius: "16px", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem", fontSize: "1.8rem" }}>
             🤝

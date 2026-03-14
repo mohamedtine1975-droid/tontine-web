@@ -14,6 +14,7 @@ interface Member {
   email: string;
   phone: string;
   role: string;
+  status: string;
 }
 
 interface Payment {
@@ -42,6 +43,7 @@ export default function AdminPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [settings, setSettings] = useState<TontineSettings>({ monthlyAmount: 10000, adminPhone: "", adminWaveNumber: "", adminOmNumber: "", groupName: "Tontine Familiale" });
   const [activeTab, setActiveTab] = useState<"overview" | "members" | "settings">("overview");
@@ -59,14 +61,28 @@ export default function AdminPage() {
   }, [user, userData]);
 
   const loadAll = async () => {
-    const [mSnap, pSnap, sSnap] = await Promise.all([
-      getDocs(query(collection(db, "users"), where("role", "==", "member"))),
+    const [mSnap, pSnap, pmSnap, sSnap] = await Promise.all([
+      getDocs(query(collection(db, "users"), where("role", "==", "member"), where("status", "==", "approved"))),
       getDocs(collection(db, "payments")),
+      getDocs(query(collection(db, "users"), where("role", "==", "member"), where("status", "==", "pending"))),
       getDoc(doc(db, "settings", "tontine")),
     ]);
     setMembers(mSnap.docs.map(d => d.data() as Member));
     setPayments(pSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Payment));
+    setPendingMembers(pmSnap.docs.map(d => d.data() as Member));
     if (sSnap.exists()) setSettings(sSnap.data() as TontineSettings);
+  };
+
+  const approveMember = async (uid: string) => {
+    await updateDoc(doc(db, "users", uid), { status: "approved" });
+    toast.success("Membre approuvé !");
+    await loadAll();
+  };
+
+  const rejectMember = async (uid: string) => {
+    await updateDoc(doc(db, "users", uid), { status: "rejected" });
+    toast("Membre rejeté", { icon: "❌" });
+    await loadAll();
   };
 
   const validatePayment = async (paymentId: string) => {
@@ -112,7 +128,6 @@ export default function AdminPage() {
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "1.25rem 1rem" }}>
 
-        {/* Header */}
         <div style={{ marginBottom: "1.25rem" }}>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.3rem, 5vw, 1.8rem)", fontWeight: 700, color: "var(--forest)" }}>
             Dashboard Admin
@@ -120,8 +135,8 @@ export default function AdminPage() {
           <p style={{ color: "var(--text-muted)", marginTop: "0.25rem", fontSize: "0.88rem" }}>{settings.groupName}</p>
         </div>
 
-        {/* Tabs — scrollable on mobile */}
-        <div style={{ display: "flex", gap: "0", marginBottom: "1.5rem", borderBottom: "2px solid rgba(201,168,76,0.2)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        {/* Tabs */}
+        <div style={{ display: "flex", marginBottom: "1.5rem", borderBottom: "2px solid rgba(201,168,76,0.2)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(["overview", "members", "settings"] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               padding: "0.6rem 1rem",
@@ -137,7 +152,7 @@ export default function AdminPage() {
               whiteSpace: "nowrap",
               transition: "all 0.15s"
             }}>
-              {tab === "overview" ? "Vue d'ensemble" : tab === "members" ? "Membres" : "Paramètres"}
+              {tab === "overview" ? "Vue d'ensemble" : tab === "members" ? `Membres` : "Paramètres"}
             </button>
           ))}
         </div>
@@ -145,7 +160,7 @@ export default function AdminPage() {
         {/* ---- OVERVIEW ---- */}
         {activeTab === "overview" && (
           <>
-            {/* Stats — 2 cols on mobile, 4 on desktop */}
+            {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
               {[
                 { label: "Total encaissé", value: totalCollected.toLocaleString("fr-FR") + " F", color: "var(--forest)" },
@@ -160,12 +175,41 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Pending validations */}
+            {/* Membres en attente d'approbation */}
+            {pendingMembers.length > 0 && (
+              <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
+                <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#F0F7FF" }}>
+                  <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600, color: "#185FA5" }}>
+                    👤 Nouveaux membres à approuver ({pendingMembers.length})
+                  </h3>
+                </div>
+                {pendingMembers.map(m => (
+                  <div key={m.uid} style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <p style={{ fontWeight: 600, fontSize: "0.92rem" }}>{m.name}</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.15rem" }}>
+                        {m.phone} · {m.email}
+                      </p>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                      <button onClick={() => rejectMember(m.uid)} style={{ background: "#FEECEC", color: "#A32D2D", border: "1px solid #F7C1C1", borderRadius: "8px", padding: "0.5rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
+                        ✕ Rejeter
+                      </button>
+                      <button onClick={() => approveMember(m.uid)} style={{ background: "#E6F4EC", color: "#1A6B35", border: "1px solid #A8D5B5", borderRadius: "8px", padding: "0.5rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
+                        ✓ Approuver
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Paiements en attente */}
             {pendingPayments.length > 0 && (
               <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
                 <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#FFF8E6" }}>
                   <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600, color: "#8B6914" }}>
-                    ⏳ À valider ({pendingPayments.length})
+                    ⏳ Paiements à valider ({pendingPayments.length})
                   </h3>
                 </div>
                 {pendingPayments.map(p => (
@@ -192,7 +236,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Month filter + member status */}
+            {/* Statut membres */}
             <div className="card" style={{ overflow: "hidden" }}>
               <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
@@ -202,11 +246,10 @@ export default function AdminPage() {
                   <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} style={{ width: "auto", padding: "0.35rem 0.6rem", fontSize: "0.82rem" }} />
                 </div>
               </div>
-
               {members.length === 0 ? (
                 <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "var(--text-muted)" }}>
                   <div style={{ fontSize: "1.8rem", marginBottom: "0.4rem" }}>👥</div>
-                  <p style={{ fontSize: "0.88rem" }}>Aucun membre inscrit</p>
+                  <p style={{ fontSize: "0.88rem" }}>Aucun membre approuvé</p>
                 </div>
               ) : members.map(m => {
                 const mp = getMemberPayment(m.uid);
@@ -215,7 +258,7 @@ export default function AdminPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontWeight: 500, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "0.1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.phone}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "0.1rem" }}>{m.phone}</p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
                         {!mp && <span className="badge-unpaid">Non payé</span>}
@@ -239,12 +282,12 @@ export default function AdminPage() {
         {activeTab === "members" && (
           <div className="card" style={{ overflow: "hidden" }}>
             <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600 }}>{members.length} membres</h3>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600 }}>{members.length} membres approuvés</h3>
             </div>
             {members.length === 0 ? (
               <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "var(--text-muted)" }}>
                 <div style={{ fontSize: "1.8rem", marginBottom: "0.4rem" }}>👥</div>
-                <p style={{ fontSize: "0.88rem" }}>Aucun membre inscrit</p>
+                <p style={{ fontSize: "0.88rem" }}>Aucun membre approuvé</p>
               </div>
             ) : members.map(m => {
               const paid = payments.filter(p => p.memberId === m.uid && p.status === "validated").length;
@@ -257,7 +300,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontWeight: 600, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.phone}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{m.phone}</p>
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>

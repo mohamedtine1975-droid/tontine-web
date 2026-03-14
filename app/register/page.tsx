@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -18,7 +18,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Check if admin invite code is provided
       const isAdmin = form.code === process.env.NEXT_PUBLIC_ADMIN_CODE;
       const role = isAdmin ? "admin" : "member";
 
@@ -29,12 +28,17 @@ export default function RegisterPage() {
         email: form.email,
         phone: form.phone,
         role,
+        status: isAdmin ? "approved" : "pending",
         createdAt: new Date().toISOString(),
       });
 
-      toast.success("Compte créé avec succès !");
-      if (isAdmin) router.push("/admin");
-      else router.push("/dashboard");
+      if (isAdmin) {
+        toast.success("Compte admin créé !");
+        router.push("/admin");
+      } else {
+        toast.success("Inscription envoyée ! Attendez la validation de l'admin.");
+        router.push("/login");
+      }
     } catch (err: unknown) {
       const error = err as { code?: string };
       if (error.code === "auth/email-already-in-use") toast.error("Cet email est déjà utilisé");
