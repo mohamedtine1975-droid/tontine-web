@@ -92,7 +92,7 @@ export default function Dashboard() {
     const amount = settings.monthlyAmount;
     if (method === "wave") {
       const waveNumber = settings.adminWaveNumber.replace(/\s/g, "");
-      window.open(`https://www.wave.com/en/send/?phone=${waveNumber}&amount=${amount}&currency=XOF`, "_blank");
+      window.open(`https://wave.com/send/?to=${waveNumber}&amount=${amount}`, "_blank");
     } else {
       toast("Ouvrez Orange Money et envoyez " + amount.toLocaleString("fr-FR") + " FCFA au " + settings.adminOmNumber, { icon: "🟠", duration: 6000 });
     }
