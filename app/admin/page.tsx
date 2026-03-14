@@ -24,7 +24,7 @@ interface Payment {
   month: string;
   method: string;
   status: string;
-  screenshotUrl?: string;
+  screenshotBase64?: string;
   paidAt: string;
   validatedAt?: string;
   transactionRef?: string;
@@ -93,85 +93,98 @@ export default function AdminPage() {
     }
   };
 
-  // Stats
   const monthPayments = payments.filter(p => p.month === selectedMonth);
   const paidMembers = monthPayments.filter(p => p.status === "validated");
   const pendingPayments = payments.filter(p => p.status === "pending");
   const totalCollected = paidMembers.reduce((s, p) => s + p.amount, 0);
   const unpaidCount = members.length - paidMembers.length;
-
   const getMemberPayment = (uid: string) => monthPayments.find(p => p.memberId === uid);
 
-  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--gold)" }}>Chargement...</span></div>;
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <span style={{ color: "var(--gold)" }}>Chargement...</span>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
       <Navbar />
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "2rem 1rem" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "1.25rem 1rem" }}>
 
         {/* Header */}
-        <div style={{ marginBottom: "1.5rem" }}>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.8rem", fontWeight: 700, color: "var(--forest)" }}>
-            Tableau de bord Admin
+        <div style={{ marginBottom: "1.25rem" }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.3rem, 5vw, 1.8rem)", fontWeight: 700, color: "var(--forest)" }}>
+            Dashboard Admin
           </h1>
-          <p style={{ color: "var(--text-muted)", marginTop: "0.25rem" }}>{settings.groupName}</p>
+          <p style={{ color: "var(--text-muted)", marginTop: "0.25rem", fontSize: "0.88rem" }}>{settings.groupName}</p>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.75rem", borderBottom: "2px solid rgba(201,168,76,0.2)", paddingBottom: "0" }}>
+        {/* Tabs — scrollable on mobile */}
+        <div style={{ display: "flex", gap: "0", marginBottom: "1.5rem", borderBottom: "2px solid rgba(201,168,76,0.2)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(["overview", "members", "settings"] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: "0.6rem 1.25rem", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "0.9rem", color: activeTab === tab ? "var(--forest)" : "var(--text-muted)", borderBottom: `3px solid ${activeTab === tab ? "var(--gold)" : "transparent"}`, marginBottom: "-2px", transition: "all 0.15s" }}>
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              padding: "0.6rem 1rem",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "0.88rem",
+              color: activeTab === tab ? "var(--forest)" : "var(--text-muted)",
+              borderBottom: `3px solid ${activeTab === tab ? "var(--gold)" : "transparent"}`,
+              marginBottom: "-2px",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s"
+            }}>
               {tab === "overview" ? "Vue d'ensemble" : tab === "members" ? "Membres" : "Paramètres"}
             </button>
           ))}
         </div>
 
-        {/* ---- OVERVIEW TAB ---- */}
+        {/* ---- OVERVIEW ---- */}
         {activeTab === "overview" && (
           <>
-            {/* Stats cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.75rem" }}>
+            {/* Stats — 2 cols on mobile, 4 on desktop */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
               {[
                 { label: "Total encaissé", value: totalCollected.toLocaleString("fr-FR") + " F", color: "var(--forest)" },
-                { label: "Membres ayant payé", value: `${paidMembers.length} / ${members.length}`, color: "#1A6B35" },
+                { label: "Ont payé", value: `${paidMembers.length}/${members.length}`, color: "#1A6B35" },
                 { label: "Non payés", value: unpaidCount.toString(), color: "#B04A10" },
-                { label: "En attente validation", value: pendingPayments.length.toString(), color: "#8B6914" },
+                { label: "En attente", value: pendingPayments.length.toString(), color: "#8B6914" },
               ].map(stat => (
-                <div key={stat.label} style={{ background: "white", borderRadius: "14px", border: "1px solid rgba(201,168,76,0.2)", padding: "1.25rem" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: "0.4rem" }}>{stat.label}</p>
-                  <p style={{ fontFamily: "var(--font-heading)", fontSize: "1.5rem", fontWeight: 700, color: stat.color }}>{stat.value}</p>
+                <div key={stat.label} style={{ background: "white", borderRadius: "14px", border: "1px solid rgba(201,168,76,0.2)", padding: "1rem" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginBottom: "0.3rem" }}>{stat.label}</p>
+                  <p style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.1rem, 4vw, 1.4rem)", fontWeight: 700, color: stat.color }}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Pending validations */}
             {pendingPayments.length > 0 && (
-              <div className="card" style={{ marginBottom: "1.75rem", overflow: "hidden" }}>
-                <div style={{ padding: "1.1rem 1.5rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#FFF8E6" }}>
-                  <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", fontWeight: 600, color: "#8B6914" }}>
-                    ⏳ Paiements à valider ({pendingPayments.length})
+              <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
+                <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#FFF8E6" }}>
+                  <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600, color: "#8B6914" }}>
+                    ⏳ À valider ({pendingPayments.length})
                   </h3>
                 </div>
                 {pendingPayments.map(p => (
-                  <div key={p.id} style={{ padding: "1rem 1.5rem", borderBottom: "1px solid rgba(0,0,0,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-                    <div>
-                      <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>{p.memberName}</p>
-                      <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                        {new Date(p.month + "-01").toLocaleDateString("fr-FR", { month: "long", year: "numeric" })} · {p.method === "wave" ? "Wave 🌊" : "Orange Money 🟠"} · {p.amount.toLocaleString("fr-FR")} F
+                  <div key={p.id} style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <p style={{ fontWeight: 600, fontSize: "0.92rem" }}>{p.memberName}</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.15rem" }}>
+                        {new Date(p.month + "-01").toLocaleDateString("fr-FR", { month: "long", year: "numeric" })} · {p.method === "wave" ? "Wave 🌊" : "OM 🟠"} · {p.amount.toLocaleString("fr-FR")} F
                       </p>
-                      {p.screenshotUrl && (
-                        <a href={p.screenshotUrl} target="_blank" rel="noreferrer" style={{ color: "var(--gold-dark)", fontSize: "0.8rem", fontWeight: 600 }}>
-                          📷 Voir la capture d'écran
-                        </a>
+                      {p.screenshotBase64 && (
+                        <img src={p.screenshotBase64} alt="preuve" style={{ maxHeight: 80, borderRadius: 6, marginTop: 6 }} />
                       )}
                     </div>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button onClick={() => rejectPayment(p.id)} style={{ background: "#FEECEC", color: "#A32D2D", border: "1px solid #F7C1C1", borderRadius: "8px", padding: "0.45rem 0.9rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
-                        Rejeter
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                      <button onClick={() => rejectPayment(p.id)} style={{ background: "#FEECEC", color: "#A32D2D", border: "1px solid #F7C1C1", borderRadius: "8px", padding: "0.5rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
+                        ✕ Rejeter
                       </button>
-                      <button onClick={() => validatePayment(p.id)} style={{ background: "#E6F4EC", color: "#1A6B35", border: "1px solid #A8D5B5", borderRadius: "8px", padding: "0.45rem 0.9rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
-                        ✅ Valider
+                      <button onClick={() => validatePayment(p.id)} style={{ background: "#E6F4EC", color: "#1A6B35", border: "1px solid #A8D5B5", borderRadius: "8px", padding: "0.5rem", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem" }}>
+                        ✓ Valider
                       </button>
                     </div>
                   </div>
@@ -179,65 +192,78 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Month selector + member status */}
+            {/* Month filter + member status */}
             <div className="card" style={{ overflow: "hidden" }}>
-              <div style={{ padding: "1.1rem 1.5rem", borderBottom: "1px solid rgba(201,168,76,0.15)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-                <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", fontWeight: 600, color: "var(--forest)" }}>
-                  Statut des membres
-                </h3>
-                <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} style={{ width: "auto", padding: "0.4rem 0.75rem", fontSize: "0.85rem" }} />
+              <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+                  <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600, color: "var(--forest)" }}>
+                    Statut des membres
+                  </h3>
+                  <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} style={{ width: "auto", padding: "0.35rem 0.6rem", fontSize: "0.82rem" }} />
+                </div>
               </div>
 
-              {members.map(m => {
+              {members.length === 0 ? (
+                <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "var(--text-muted)" }}>
+                  <div style={{ fontSize: "1.8rem", marginBottom: "0.4rem" }}>👥</div>
+                  <p style={{ fontSize: "0.88rem" }}>Aucun membre inscrit</p>
+                </div>
+              ) : members.map(m => {
                 const mp = getMemberPayment(m.uid);
                 return (
-                  <div key={m.uid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderBottom: "1px solid rgba(0,0,0,0.04)", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                      <p style={{ fontWeight: 500, fontSize: "0.95rem" }}>{m.name}</p>
-                      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>{m.phone} · {m.email}</p>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      {!mp && <span className="badge-unpaid">Non payé</span>}
-                      {mp?.status === "pending" && <span className="badge-pending">En attente</span>}
-                      {mp?.status === "validated" && <span className="badge-paid">✅ Payé</span>}
-                      {mp && <button onClick={() => setSelectedTicket(mp)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gold-dark)", fontSize: "0.82rem", fontWeight: 600, fontFamily: "var(--font-heading)" }}>Reçu →</button>}
+                  <div key={m.uid} style={{ padding: "0.9rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 500, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "0.1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.phone}</p>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                        {!mp && <span className="badge-unpaid">Non payé</span>}
+                        {mp?.status === "pending" && <span className="badge-pending">En attente</span>}
+                        {mp?.status === "validated" && <span className="badge-paid">✅ Payé</span>}
+                        {mp && (
+                          <button onClick={() => setSelectedTicket(mp)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gold-dark)", fontSize: "0.8rem", fontWeight: 600, fontFamily: "var(--font-heading)", padding: 0 }}>
+                            Reçu →
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
-
-              {members.length === 0 && (
-                <div style={{ padding: "2.5rem", textAlign: "center", color: "var(--text-muted)" }}>
-                  <div style={{ fontSize: "1.8rem", marginBottom: "0.4rem" }}>👥</div>
-                  <p>Aucun membre inscrit pour l'instant</p>
-                </div>
-              )}
             </div>
           </>
         )}
 
-        {/* ---- MEMBERS TAB ---- */}
+        {/* ---- MEMBERS ---- */}
         {activeTab === "members" && (
           <div className="card" style={{ overflow: "hidden" }}>
-            <div style={{ padding: "1.1rem 1.5rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", fontWeight: 600 }}>{members.length} membres</h3>
+            <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "0.95rem", fontWeight: 600 }}>{members.length} membres</h3>
             </div>
-            {members.map(m => {
+            {members.length === 0 ? (
+              <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "1.8rem", marginBottom: "0.4rem" }}>👥</div>
+                <p style={{ fontSize: "0.88rem" }}>Aucun membre inscrit</p>
+              </div>
+            ) : members.map(m => {
               const paid = payments.filter(p => p.memberId === m.uid && p.status === "validated").length;
               return (
-                <div key={m.uid} style={{ padding: "1rem 1.5rem", borderBottom: "1px solid rgba(0,0,0,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
-                    <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--forest)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.95rem" }}>
-                      {m.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                <div key={m.uid} style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--forest)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.85rem", flexShrink: 0 }}>
+                        {m.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.phone}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>{m.name}</p>
-                      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>{m.phone} · {m.email}</p>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, color: "var(--forest)", fontSize: "0.9rem" }}>{paid} mois</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{(paid * settings.monthlyAmount).toLocaleString("fr-FR")} F</p>
                     </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, color: "var(--forest)" }}>{paid} mois payés</p>
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>{(paid * settings.monthlyAmount).toLocaleString("fr-FR")} F total</p>
                   </div>
                 </div>
               );
@@ -245,13 +271,13 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ---- SETTINGS TAB ---- */}
+        {/* ---- SETTINGS ---- */}
         {activeTab === "settings" && (
-          <div className="card" style={{ padding: "2rem", maxWidth: 520 }}>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.1rem", fontWeight: 700, color: "var(--forest)", marginBottom: "1.5rem" }}>
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", fontWeight: 700, color: "var(--forest)", marginBottom: "1.25rem" }}>
               Paramètres de la tontine
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
                 <label>Nom du groupe</label>
                 <input value={settings.groupName} onChange={e => setSettings({ ...settings, groupName: e.target.value })} />
@@ -261,15 +287,15 @@ export default function AdminPage() {
                 <input type="number" value={settings.monthlyAmount} onChange={e => setSettings({ ...settings, monthlyAmount: +e.target.value })} />
               </div>
               <div>
-                <label>Numéro Wave de l'admin</label>
-                <input placeholder="+221 77 000 00 00" value={settings.adminWaveNumber} onChange={e => setSettings({ ...settings, adminWaveNumber: e.target.value })} />
+                <label>Numéro Wave</label>
+                <input placeholder="+221760219352" value={settings.adminWaveNumber} onChange={e => setSettings({ ...settings, adminWaveNumber: e.target.value })} />
               </div>
               <div>
-                <label>Numéro Orange Money de l'admin</label>
-                <input placeholder="+221 77 000 00 00" value={settings.adminOmNumber} onChange={e => setSettings({ ...settings, adminOmNumber: e.target.value })} />
+                <label>Numéro Orange Money</label>
+                <input placeholder="+221770000000" value={settings.adminOmNumber} onChange={e => setSettings({ ...settings, adminOmNumber: e.target.value })} />
               </div>
-              <button className="btn-gold" onClick={saveSettings} disabled={saving} style={{ marginTop: "0.5rem" }}>
-                {saving ? "Sauvegarde..." : "Enregistrer les paramètres"}
+              <button className="btn-gold" onClick={saveSettings} disabled={saving} style={{ marginTop: "0.25rem" }}>
+                {saving ? "Sauvegarde..." : "Enregistrer"}
               </button>
             </div>
           </div>
