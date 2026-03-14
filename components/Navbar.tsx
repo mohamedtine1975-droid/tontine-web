@@ -63,7 +63,7 @@ export default function Navbar() {
             flexShrink: 0
           }}
         >
-          Déco
+          Déconnexion
         </button>
       </div>
     </nav>
