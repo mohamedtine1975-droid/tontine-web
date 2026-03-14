@@ -90,14 +90,13 @@ export default function Dashboard() {
   const openPaymentLink = (method: "wave" | "orange") => {
     if (!settings) return;
     const amount = settings.monthlyAmount;
-    if (method === "wave") {
-      const waveNumber = settings.adminWaveNumber.replace(/\s/g, "");
-      window.open(`https://www.wave.com/en/sn/send/?phone=${waveNumber}&amount=${amount}`, "_blank");
-    } else {
-      toast("Ouvrez Orange Money et envoyez " + amount.toLocaleString("fr-FR") + " FCFA au " + settings.adminOmNumber, { icon: "🟠", duration: 6000 });
-    }
+    const number = method === "wave" ? settings.adminWaveNumber : settings.adminOmNumber;
+    navigator.clipboard.writeText(number.replace(/\s/g, ""));
+    toast.success(
+      `Numéro copié ! Ouvrez ${method === "wave" ? "Wave 🌊" : "Orange Money 🟠"} et envoyez ${amount.toLocaleString("fr-FR")} FCFA au ${number}`,
+      { duration: 8000 }
+    );
   };
-
   const handleSubmitPayment = async () => {
     if (!user || !userData || !settings) return;
     if (!screenshotPreview) { toast.error("Veuillez joindre une capture d'écran"); return; }
