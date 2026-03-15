@@ -1,6 +1,7 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function Navbar() {
@@ -27,7 +28,6 @@ export default function Navbar() {
       top: 0,
       zIndex: 50
     }}>
-      {/* Logo + nom */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
         <span style={{ fontSize: "1.3rem" }}>🤝</span>
         <span style={{ fontFamily: "var(--font-heading)", color: "white", fontWeight: 700, fontSize: "clamp(0.85rem, 3vw, 1rem)" }}>
@@ -40,13 +40,13 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* Infos utilisateur + déconnexion */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-        <div style={{ textAlign: "right", minWidth: 0 }}>
-          <div style={{ color: "white", fontSize: "clamp(0.75rem, 2.5vw, 0.88rem)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "120px" }}>
-            {userData?.name}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        {/* Avatar lien vers profil */}
+        <Link href="/profile" style={{ textDecoration: "none" }}>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", color: "#1A1A14", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", flexShrink: 0 }}>
+            {userData?.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
           </div>
-        </div>
+        </Link>
         <button
           onClick={handleLogout}
           style={{

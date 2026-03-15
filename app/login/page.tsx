@@ -18,8 +18,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-
-      // Vérifier le statut du compte
       const userSnap = await getDoc(doc(db, "users", cred.user.uid));
       if (userSnap.exists() && userSnap.data().status === "pending") {
         await signOut(auth);
@@ -33,12 +31,10 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-
       toast.success("Bienvenue !");
       const role = userSnap.data()?.role;
       if (role === "admin") router.push("/admin");
       else router.push("/dashboard");
-
     } catch {
       toast.error("Email ou mot de passe incorrect");
     } finally {
@@ -64,7 +60,12 @@ export default function LoginPage() {
               <input type="email" placeholder="vous@exemple.com" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <label>Mot de passe</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                <label style={{ margin: 0 }}>Mot de passe</label>
+                <Link href="/forgot-password" style={{ fontSize: "0.8rem", color: "var(--gold-dark)", fontWeight: 600, textDecoration: "none" }}>
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <button className="btn-gold" type="submit" disabled={loading} style={{ width: "100%", marginTop: "0.5rem", opacity: loading ? 0.7 : 1 }}>
