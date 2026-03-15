@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc, setDoc, getDoc, query, where } from "firebase/firestore";
 import Navbar from "@/components/Navbar";
 import PaymentTicket from "@/components/PaymentTicket";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface Member {
@@ -128,11 +129,16 @@ export default function AdminPage() {
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "1.25rem 1rem" }}>
 
-        <div style={{ marginBottom: "1.25rem" }}>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.3rem, 5vw, 1.8rem)", fontWeight: 700, color: "var(--forest)" }}>
-            Dashboard Admin
-          </h1>
-          <p style={{ color: "var(--text-muted)", marginTop: "0.25rem", fontSize: "0.88rem" }}>{settings.groupName}</p>
+        <div style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.3rem, 5vw, 1.8rem)", fontWeight: 700, color: "var(--forest)" }}>
+              Dashboard Admin
+            </h1>
+            <p style={{ color: "var(--text-muted)", marginTop: "0.25rem", fontSize: "0.88rem" }}>{settings.groupName}</p>
+          </div>
+          <Link href="/stats" style={{ background: "var(--forest)", color: "var(--gold)", textDecoration: "none", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "0.85rem", padding: "0.5rem 1rem", borderRadius: "10px", border: "1px solid rgba(201,168,76,0.3)", whiteSpace: "nowrap" }}>
+            📊 Statistiques
+          </Link>
         </div>
 
         {/* Tabs */}
@@ -160,7 +166,6 @@ export default function AdminPage() {
         {/* ---- OVERVIEW ---- */}
         {activeTab === "overview" && (
           <>
-            {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
               {[
                 { label: "Total encaissé", value: totalCollected.toLocaleString("fr-FR") + " F", color: "var(--forest)" },
@@ -175,7 +180,6 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Membres en attente d'approbation */}
             {pendingMembers.length > 0 && (
               <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
                 <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#F0F7FF" }}>
@@ -204,7 +208,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Paiements en attente */}
             {pendingPayments.length > 0 && (
               <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
                 <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)", background: "#FFF8E6" }}>
@@ -236,7 +239,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Statut membres */}
             <div className="card" style={{ overflow: "hidden" }}>
               <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
